@@ -1,0 +1,89 @@
+\documentclass[xcolor=rgb]{beamer}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[english,hungarian]{babel}
+\usepackage{graphicx}
+\title{MorphoDeep: Morfológiai elemzés deep learninggel}
+\author[\'Acs Judit]{\'Acs Judit\\ \texttt{judit@aut.bme.hu}}
+  \institute{BME AUT}
+  \date{2016.~október 27.}
+
+\begin{document}
+  
+\begin{frame}
+\titlepage 
+\end{frame}
+
+\begin{frame}{Motiváció}
+    \begin{itemize}
+        \item Morfológia: szavak belső szerkezetének vizsgálata.
+            \begin{itemize}
+                \item \emph{házak = ház + (a)k}
+                \item \emph{zúzalékával?}
+            \end{itemize}
+        \item A magyar morfológia kiemelkedően gazdag.
+        \item Szinte minden nyelvtechnológiai feladathoz kell morfológiai elemzés.
+        \item Jelenleg kézzel írt szabályok alapján történik.
+        \item Deep learninget magyarra még nem alkalmaztak.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Irodalomkutatás}
+    \begin{enumerate}
+        \item szegmentálás
+            \begin{itemize}
+                \item HMM-alapú, MDL kritérium
+                \item Morfessor (Creutz and Lagus, 2002)\nocite{Creutz:2002}
+            \end{itemize}
+        \item karakteralapú deep learning
+            \begin{itemize}
+                \item gépi fordítás (Lee et al., 2016)\nocite{Lee:2016}
+            \end{itemize}
+        \item morfológiai reinflexió
+            \begin{itemize}
+                \item SIGMORPHON Shared Task (Cotterell et al., 2016)\nocite{Cotterell:2016}
+                \item 12 csapat beadása
+            \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Baseline: szófajok osztályzása szóalak alapján}
+    \begin{itemize}
+        \item szóalak vs.~ngram alapú
+        \item túltanulás! - gyakorlatilag egy memóriát építek
+        \item hogyan lehet általánosítani?
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Megvalósítás}
+    \begin{itemize}
+        \item Architektúra
+            \begin{itemize}
+                \item jelenleg FFNN
+                \item RNN, LSTM, CNN?
+            \end{itemize}
+        \item Technológia
+        \begin{itemize}
+            \item Python, jupyter
+            \item Tensorflow, Keras
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Nehézségek}
+    \begin{itemize}
+        \item nagyon ritka az adat,
+        \item morfémahatárok nem egyértelműek,
+        \item kevés gold adat, sok silver,
+        \pause
+        \item magyar morfológia
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Hivatkoz\'asok}
+\bibliographystyle{plain}
+\bibliography{ml}
+\end{frame}
+
+\end{document}
