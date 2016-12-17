@@ -1,0 +1,204 @@
+\documentclass{article}
+
+% if you need to pass options to natbib, use, e.g.:
+% \PassOptionsToPackage{numbers, compress}{natbib}
+% before loading nips_2016
+%
+% to avoid loading the natbib package, add option nonatbib:
+% \usepackage[nonatbib]{nips_2016}
+
+\usepackage[final]{nips_2016}
+\usepackage{soul}
+\usepackage{xcolor}
+
+% to compile a camera-ready version, add the [final] option, e.g.:
+% \usepackage[final]{nips_2016}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+
+\title{MorphoDeep\\ magyar cim}
+
+% The \author macro works with any number of authors. There are two
+% commands used to separate the names and addresses of multiple
+% authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to
+% break the lines. Using \AND forces a line break at that point. So,
+% if LaTeX puts 3 of 4 authors names on the first line, and the last
+% on the second line, try using \AND instead of \And before the third
+% author name.
+
+\author{
+  Judit \'Acs\thanks{http://avalon.aut.bme.hu/~judit} \\
+  Department of Automation and Applied Informatics \\
+  Budapest University of Technology and Economics\\
+  \texttt{judit@aut.bme.hu} \\
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Morphological analysis is important
+\end{abstract}
+
+\section{Introduction}\label{sec:introduction}
+
+Morphology is the study of word structure, how words are formed and how they are related to each other.
+Traditionally linguists define \emph{morpheme} as the smallest unit that has semantic meaning on its own.
+Morphological analysis is the process of segmenting words into smaller units, called \emph{morphemes} and analysing their syntactic and semantic roles.
+
+Morphemes are either \emph{bound} or \emph{free}.
+Bound morphemes may only appear as parts of a larger word, while free or unbound morphemes stand on their own.
+
+Bound morphemes are further categorized into \emph{derivational} and \emph{inflectional} morphemes.
+The former category consist of morphemes that change the grammatical category or the meaning of the word, while the latter category only affects plurality, tense, case and so on.
+
+Morphological analysis plays a central role in many natural language processing tasks such as information retrieval, machine translation or spell checking.
+However, the large variation of morphological paradigms accross different languages makes it especially hard to create general solutions for morphological analysis.
+For example Chinese or Vietnamese are both \emph{isolating languages} i.e.~they almost exclusively use free morphemes, therefore analysis below word level is seldom hard or necessary.
+In contrast, Uralic languages such as Hungarian exhibit rich morphology, and the number of unique word forms is virtually infinite.
+English -- by far the most well resourced language -- lies somewhere in the middle, therefore most general solutions do not focus as much on morphology as for example Hungarian NLP would necessitate.
+
+In this work, we shall only examine bound morphemes and mostly inflectional paradigms based on word forms in Hungarian.
+
+\hl{tartalomjegyzek}
+
+\section{Related work}\label{sec:related}
+
+Morfessor
+
+Unsup morph learning using deep learning Stanford paper
+
+\section{Classification problems}
+
+\hl{egy cim nev kene ide}
+
+Our experiments can be grouped into three categories.
+All experiments use a single word and its analysis as a sample, no context is taken into account.
+Our training data is the Hungarian Webcorpus \cite{Halacsy:2004}, which includes morphological analysis by HunMorph \cite{Tron:2005}.
+We consider the output of HunMorph -- a rule-based analyzer -- to be very reliable and treat the data as a high quality silver standard.
+Character n-grams were extracted as features.
+
+\subsection{Classifying part-of-speech tags}
+
+\emph{Part of speech} is a category of words that display similar grammatical properties.
+The assignment of part of speech categories to words is called \emph{part of speech tagging} or {POS tagging}.
+POS tagging is usually a crucial task in NLP and high quality tools are necessary.
+We investigate how well POS tags can be inferred from word forms using the output of HunMorph which includes POS tags.
+POS tagging can be considered as a baseline task of morphological analysis, since high quality morphological analysis includes and expands high quality POS tagging.
+
+The number of different POS tags is very limited, only 10 categories take up at least 1\% of the words.
+
+\begin{table}
+\end{table}
+
+\begin{table}[t]
+  \caption{Frequency of the top 10 POS tags in 1 million words}
+  \label{table:pos-tags}
+  \centering
+  \begin{tabular}{cc}
+      \toprule
+      POS & Frequency \\
+      \midrule
+      NOUN & 311259 \\
+      PUNCT & 162867 \\
+      VERB & 105032 \\
+      ART & 100766 \\
+      ADJ & 85076 \\
+      ADV & 67105 \\
+      CONJ & 55539 \\
+      NUM & 19446 \\
+      POSTP & 16480 \\
+      PREV & 12691 \\
+      \bottomrule
+  \end{tabular}
+\end{table}
+
+Since punctuation (\texttt{PUNCT}) and article (\texttt{ART}) are \emph{closed} categories -- i.e.~their members can be easily listed and the list is not very long --, they do not amount to an interesting classification problem and most of our experiements aim to distinguish between nouns and verbs.
+In Hungarian this is an almost trivial task for any competent speaker and we expect a learning algorithm to perform well too.
+
+\subsection{Inflectional paradigm classification}
+
+In Hungarian syntactic and semantic roles of words are most frequently marked with suffixes.
+Inferring inflectional paradigms from word forms without context is also an easy task for a human and should be easy for a learning algorithm too.
+We chose a few frequent inflectional paradigms for classification:
+
+\begin{description}
+    \item[singular vs.~plural] both verbs and nouns can be singular and plural and we make no distinction between verbs and nouns in this case,
+    \item[accusative vs.~other noun cases] among the dozens of noun cases, accusative is the most common, \hl{hany osztaly volt}
+    \item{past tense vs.~present tense} verb tenses regardless of the person \hl{nem igy mondjak a hanyadik szemelyt}
+    \item{most frequent noun cases} 10 most frequent noun cases \hl{nehany pelda}
+\end{description}
+
+\subsection{Classification of tag clusters}
+
+Full morphological analysis is represented via a complicated coding, called \emph{KR coding}, which contains among others POS, case, tense and plurality.
+The number of unique tags in the first million words is \hl{todo leszamol}.
+The large number of different tags call for some kind of aggregation such as clustering.
+
+Brown clustering is a hierarchical clustering method that uses a mutual information criteria for cluster \hl{todo}
+As a hierarchical clustering method, Brown clustering eventually results in one big cluster unless a stopping criteria is specified.
+For our experiments we limit the number of clusters to 120.
+It is important to note that only the tags are used during clustering and word forms are ignored.
+
+The results of Brown clustering are somewhat unintuitive such as \hl{todo pelda}
+
+\section{Feature extraction}
+
+The corpus contains a single word and its analysis per line and sentence boundaries are denoted with an empty line.
+Words and KR codes are tab separated.
+Since the corpus is already denoised and tokenized, the only preprocessing we use is lowercasing.
+
+Our assumption is that the end of the word is more implicative of its grammatical category than its beginning, due to the agglutinative (rich in suffixes) nature of Hungarian.
+Character n-grams are used as features starting from the end of the word.
+The position of the n-grams are also preserved (i.e.~this is not a bag-of-ngrams model).
+Table~\ref{table:feat_extract} shows an example of feature extraction.
+
+
+\begin{table}[t]
+    \caption{Bigram features using the last 6 characters. The sample word is \emph{nevetés}.}
+  \label{table:feat_extract}
+  \centering
+  \begin{tabular}{cc}
+      \toprule
+      Feature (start index) & Value \\
+      \midrule
+      -2 & és \\
+      -3 & té \\
+      -4 & et \\
+      -5 & ve \\
+      -6 & ev \\
+      \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\section{Experimental setup}
+
+\section{Results}
+
+\section{Conclusion and future work}
+
+easy tasks
+
+context features
+
+automatic segmentation
+
+automatic rule discovery
+
+
+\bibliographystyle{plain}
+\bibliography{ml}
+
+\end{document}
+
