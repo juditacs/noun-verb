@@ -22,6 +22,8 @@
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
+\usepackage{numprint}
+\usepackage[english]{babel}
 
 \title{MorphoDeep\\ magyar cim}
 
@@ -142,7 +144,7 @@ We chose a few frequent inflectional paradigms for classification:
 \subsection{Classification of tag clusters}
 
 Full morphological analysis is represented via a complicated coding, called \emph{KR coding}, which contains among others POS, case, tense and plurality.
-The number of unique tags in the first million words is \hl{todo leszamol}.
+The number of unique tags in the first million words is about \numprint{1700}.
 The large number of different tags call for some kind of aggregation such as clustering.
 
 Brown clustering is a hierarchical clustering method that uses a mutual information criteria for cluster \hl{todo}
