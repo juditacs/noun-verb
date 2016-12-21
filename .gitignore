@@ -92,3 +92,6 @@ ENV/
 
 # vim swap files
 **/*swp
+dat/
+
+experiments/fig
