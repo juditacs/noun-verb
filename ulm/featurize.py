@@ -10,9 +10,10 @@
 from argparse import ArgumentParser
 from collections import defaultdict
 import re
+import string
 
-# from sklearn.feature_extraction import DictVectorizer
-# import numpy as np
+from sklearn.feature_extraction import DictVectorizer
+import numpy as np
 
 
 class InvalidInput(Exception):
@@ -24,10 +25,6 @@ class InvalidTag(InvalidInput):
 
 
 class InvalidLine(InvalidInput):
-    pass
-
-
-class NotYetRefactored(Exception):
     pass
 
 
@@ -44,6 +41,21 @@ class Sample:
     def __init__(self, sample, label):
         self.sample = sample
         self.label = label
+        self._sequential_features = None
+        self.features = None
+
+    def __eq__(self, rhs):
+        return self.sample == rhs.sample and \
+                self.label == rhs.label
+
+    def __hash__(self):
+        return hash('{}\t{}'.format(self.sample, self.label))
+
+    @property
+    def sequential_features(self):
+        if self._sequential_features is None:
+            self._sequential_features = isinstance(self.features, list)
+        return self._sequential_features
 
 
 class DataSet:
@@ -61,12 +73,25 @@ class DataSet:
             self._samples = set()
         else:
             self._samples = []
+        self._X = None
+        self._y = None
+        self._X_vectorizer = None
+        self._y_vectorizer = None
+        self._are_sequential_features = None
 
     def __len__(self):
         return len(self._samples)
 
     def get_sample_per_class(self, label):
         return self._sample_per_class_cnt.get(label, 0)
+
+    @property
+    def labels(self):
+        return self._sample_per_class_cnt.keys()
+
+    @property
+    def samples(self):
+        return self._samples
 
     @property
     def full(self):
@@ -79,6 +104,49 @@ class DataSet:
                        self._sample_per_class_cnt.values()):
                     self._full = True
         return self._full
+
+    def are_sequential_features(self):
+        if self._are_sequential_features is None:
+            s = next(self._samples)
+            self._are_sequential_features = s.sequential_features
+        return self._are_sequential_features
+
+    def __vectorize_data(self):
+        samples = list(self._samples)
+        self.__create_X_vectorizer()
+        if self.are_sequential_features():
+            self._X = np.array(
+                [np.array(self._X_vectorizer.transform(s.features))
+                 for s in samples]
+            )
+        else:
+            self._X = np.array(
+                self._X_vectorizer.transform([s.features for s in samples])
+            )
+        self._y_vectorizer = DictVectorizer()
+        self._y = self._y_vectorizer.fit_transform([s.label for s in samples])
+
+    @property
+    def X(self):
+        if self._X is None:
+            self.__vectorize_data()
+        return self._X
+
+    @property
+    def y(self):
+        if self._y is None:
+            self.__vectorize_data()
+        return self._y
+
+    def __create_X_vectorizer(self):
+        feats_2d = []
+        for s in self._samples:
+            if s.sequential_features is True:
+                feats_2d.extend(s.features)
+            else:
+                feats_2d.append(s.features)
+        self._X_vectorizer = DictVectorizer()
+        self._X_vectorizer.fit(feats_2d)
 
     def add_sample(self, sample):
         if self.full is True:
@@ -109,7 +177,7 @@ class LabelExtractor:
         return self.extractor(label)
 
     def __call__(self, label):
-        return self.extractor(label)
+        return self.extract_label(label)
 
 
 class WebCorpusExtractor:
@@ -191,6 +259,7 @@ class Featurizer:
         return not self.dataset.full
 
     def extract_sample_from_line(self, line):
+        # TODO this is WebCorpus specific, it should be in a separate class
         if not line.strip() or 'UNKNOWN' in line or '??' in line:
             raise InvalidLine()
         fd = line.strip().split('\t')
@@ -205,18 +274,21 @@ class Featurizer:
     def featurize_sample(self, sample):
         sample.features = {'word': sample.sample}
 
+    def get_samples(self):
+        return self.dataset.samples
 
-class NGramFeaturizer:
+
+class NGramFeaturizer(Featurizer):
     def __init__(self, N, last_char, max_sample_per_class,
                  max_lines=0, skip_duplicates=True,
-                 label_extractor=None, bag_of=False,
+                 label_extractor=None, bagof=False,
                  use_padding=True):
         super().__init__(max_sample_per_class, max_lines=max_lines,
                          skip_duplicates=skip_duplicates,
                          label_extractor=label_extractor)
         self.N = N
         self.last_char = last_char
-        self.bag_of = bag_of
+        self.bagof = bagof
         self.use_padding = use_padding
 
     def featurize_sample(self, sample):
@@ -224,7 +296,7 @@ class NGramFeaturizer:
         text = text[-self.last_char:]
         if self.use_padding:
             text = '{0}{1}{0}'.format(' ' * (self.N-1), text)
-        if self.bag_of is True:
+        if self.bagof is True:
             sample.features = NGramFeaturizer.extract_bagof_ngrams(
                 text, self.N)
         else:
@@ -234,39 +306,63 @@ class NGramFeaturizer:
     @staticmethod
     def extract_bagof_ngrams(text, N):
         d = {}
-        for i in range(0, len(text)-N):
+        for i in range(0, len(text)-N+1):
             d[text[i:i+N]] = True
         return d
 
     @staticmethod
     def extract_positional_ngrams(text, N):
         d = {}
-        for i in range(0, len(text)-N):
+        for i in range(0, len(text)-N+1):
             d[i] = text[i:i+N]
         return d
 
 
-class CharacterSequenceFeaturizer:
+class CharacterSequenceFeaturizer(Featurizer):
 
     hu_accents = 'áéíóöőúüű'
-    hu_chars = 'abcdefghijklmnopqrstuvwxyz' + hu_accents
-    punct = '-_.'
-    all_chars = hu_chars + punct + '*0'
+    hungarian_alphabet = 'abcdefghijklmnopqrstuvwxyz' + hu_accents
 
     def __init__(self, max_len, max_sample_per_class, tolower=True,
                  replace_rare=True,
                  max_lines=0, skip_duplicates=True,
-                 label_extractor=None, bag_of=False,
-                 use_padding=True):
+                 label_extractor=None, bagof=False,
+                 replace_digit=True, replace_punct=True,
+                 rare_char='*', alphabet=None, use_padding=True):
         super().__init__(max_sample_per_class, max_lines=max_lines,
                          skip_duplicates=skip_duplicates,
                          label_extractor=label_extractor)
         self.max_len = max_len
-        self.create_char_mapping()
         self.tolower = tolower
         self.replace_rare = replace_rare
-        self.classes = set()
-        # TODO
+        self.replace_digit = replace_digit
+        self.replace_punct = replace_punct
+        self.rare_char = rare_char
+        self.alphabet = self.hungarian_alphabet \
+            if alphabet is None else alphabet
+        self.alphabet = set(self.alphabet)
+
+    def featurize_sample(self, sample):
+        text = sample.sample[-self.max_len:]
+        feats = []
+        for c in text:
+            c = self.normalize_char(c)
+            if c is None and self.replace_rare is False:
+                continue
+            feats.append({'ch': c})
+        sample.features = feats
+
+    def normalize_char(self, c):
+        c = c.lower()
+        if c in self.alphabet:
+            return c
+        if self.replace_digit and c.isdigit():
+            return 0
+        if self.replace_punct and c in string.punctuation:
+            return '_'
+        if self.replace_rare:
+            return self.rare_char
+        return None
 
 
 def parse_args():
@@ -293,4 +389,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-# import logging
