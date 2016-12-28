@@ -191,5 +191,113 @@ class CharacterSequenceFeaturizerTester(unittest.TestCase):
         self.assertIsInstance(f, featurize.Featurizer)
         self.assertEqual(f.dataset.max_sample_per_class, 10)
 
+    def test_feature_extraction(self):
+        f = featurize.CharacterSequenceFeaturizer(2, 10)
+        f.featurize_file(io.StringIO("abc\tdef"))
+        s = f.dataset.samples.pop()
+        self.assertEqual(s.features, [{'ch': 'b'}, {'ch': 'c'}])
+
+    def test_feature_extraction_short_word(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10)
+        f.featurize_file(io.StringIO("ab\tdef"))
+        s = f.dataset.samples.pop()
+        self.assertEqual(s.features,
+                         [{'ch': ' '}, {'ch': 'a'}, {'ch': 'b'}])
+
+    def test_feature_extraction_several_lines(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10)
+        f.featurize_file(io.StringIO(input_simple))
+        l = len(input_simple.strip().split('\n'))
+        self.assertEqual(len(f.dataset), l)
+
+    def test_skip_rare(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10, replace_rare=False)
+        f.featurize_file(io.StringIO("aßbc\ta\nabc\ta"))
+        s1 = f.dataset.samples.pop()
+        s2 = f.dataset.samples.pop()
+        self.assertEqual(s1.features, s2.features)
+
+    def test_replace_rare(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10, replace_rare=True)
+        f.featurize_file(io.StringIO("aßbc\ta\naデbc\ta"))
+        s1 = f.dataset.samples[0]
+        s2 = f.dataset.samples[1]
+        self.assertEqual(s1.features, s2.features)
+
+    def test_lower(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10)
+        f.featurize_file(io.StringIO("AbCd\ta\nabCD\ta"))
+        s1 = f.dataset.samples[0]
+        s2 = f.dataset.samples[1]
+        self.assertEqual(s1.features, s2.features)
+
+    def test_replace_punct(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10)
+        f.featurize_file(io.StringIO("a!?\ta\na#'\ta"))
+        s1 = f.dataset.samples[0]
+        s2 = f.dataset.samples[1]
+        self.assertEqual(s1.features, s2.features)
+
+    def test_different_alphabet(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10, alphabet='abcd',
+                                                  replace_rare=True)
+        f.featurize_file(io.StringIO("axz\ta\nakl\ta"))
+        s1 = f.dataset.samples[0]
+        s2 = f.dataset.samples[1]
+        self.assertEqual(s1.features, s2.features)
+
+    def test_replace_rare_char(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10, rare_char='x')
+        f.featurize_file(io.StringIO("aデ\ta\nax\ta"))
+        s1 = f.dataset.samples[0]
+        s2 = f.dataset.samples[1]
+        self.assertEqual(s1.features, s2.features)
+
+
+class MatrixCreationTester(unittest.TestCase):
+    def test_2d_unique_samples(self):
+        f = featurize.NGramFeaturizer(1, 3, max_sample_per_class=2,
+                                      use_padding=False)
+        f.featurize_file(io.StringIO("abc\tdef"))
+        X = f.dataset.X
+        self.assertEqual(X.shape, (1, 3))
+        y = f.dataset.y
+        self.assertEqual(y.shape, (1, 1))
+
+    def test_2d_unique_samples2(self):
+        f = featurize.NGramFeaturizer(1, 3, max_sample_per_class=2,
+                                      use_padding=False)
+        f.featurize_file(io.StringIO("abc\tdef\nabd\t12"))
+        X = f.dataset.X
+        self.assertEqual(X.shape, (2, 4))
+        y = f.dataset.y
+        self.assertEqual(y.shape, (2, 2))
+
+    def test_2d_nonunique_samples(self):
+        f = featurize.NGramFeaturizer(1, 3, max_sample_per_class=2,
+                                      skip_duplicates=False, use_padding=False)
+        f.featurize_file(io.StringIO("abc\tdef\nabd\t12\nabc\tdef"))
+        X = f.dataset.X
+        self.assertEqual(X.shape, (3, 4))
+        y = f.dataset.y
+        self.assertEqual(y.shape, (3, 2))
+
+    def test_3d_simple(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10)
+        f.featurize_file(io.StringIO("abb\ta"))
+        X = f.dataset.X
+        self.assertEqual(X.shape, (1, 3, 2))
+        y = f.dataset.y
+        self.assertEqual(y.shape, (1, 1))
+
+    def test_3d_unique_samples(self):
+        f = featurize.CharacterSequenceFeaturizer(3, 10)
+        f.featurize_file(io.StringIO("abb\ta\nabb\ta\nbcd\tb"))
+        X = f.dataset.X
+        self.assertEqual(X.shape, (2, 3, 4))
+        y = f.dataset.y
+        self.assertEqual(y.shape, (2, 2))
+
+
 if __name__ == '__main__':
     unittest.main()
