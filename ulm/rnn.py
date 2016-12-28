@@ -129,8 +129,8 @@ class Experiment:
                                     **conf_d['model'])
         elif self.conf_d['model']['rnn_type'] == 'gru':
             self.model = SimpleGRU(input_dim=fdim, output_dim=odim,
-                                    max_len=max_len,
-                                    **conf_d['model'])
+                                   max_len=max_len,
+                                   **conf_d['model'])
         else:
             raise ValueError("RNN type {} not supported".format(
                 self.conf_d['model']['rnn_type']))
@@ -187,7 +187,8 @@ def parse_args():
 def main():
     cfg = {
         'global': {
-            'data_path': "/mnt/store/hlt/Language/Hungarian/Corp/webcorp_analed/xaa.tagged.utf8",
+            'data_path': "/mnt/store/hlt/Language/Hungarian/Corp/" +
+            "webcorp_analed/xaa.tagged.utf8",
             'nolog': False,
         },
         'featurizer': {
@@ -217,6 +218,7 @@ def main():
                     print(typ, nb, lr, cells)
                     r = e.run_all()
                     print(r)
+
 
 if __name__ == '__main__':
     main()
