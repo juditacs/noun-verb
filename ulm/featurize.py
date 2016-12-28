@@ -1,10 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-# vim:fenc=utf-8
 #
 # Copyright © 2016 Judit Acs <judit@sch.bme.hu>
 #
-# Distributed under terms of the MIT license.
+# Distributed under terms of the GPLv3 license.
 
 
 from argparse import ArgumentParser
@@ -69,15 +68,13 @@ class DataSet:
         self._full = False
         self._sample_per_class_cnt = defaultdict(int)
         self._expected_class_no = expected_class_no
-        if self._skip_duplicates:
-            self._samples = set()
-        else:
-            self._samples = []
+        self._samples = []
         self._X = None
         self._y = None
         self._X_vectorizer = None
         self._y_vectorizer = None
         self._are_sequential_features = None
+        self._unique_samples = set()
 
     def __len__(self):
         return len(self._samples)
@@ -97,17 +94,26 @@ class DataSet:
     def full(self):
         if self._full is False:
             if self._max_limit > 0 and len(self._samples) > self._max_limit:
-                self._full = True
+                self.full = True
             if self._limit_per_class and \
                     len(self._sample_per_class_cnt) >= self._expected_class_no:
                 if all(cnt >= self.max_sample_per_class for cnt in
                        self._sample_per_class_cnt.values()):
-                    self._full = True
+                    self.full = True
         return self._full
+
+    @full.setter
+    def full(self, value):
+        if value is True:
+            self._samples = list(self._samples)
+        self._full = value
 
     def are_sequential_features(self):
         if self._are_sequential_features is None:
-            s = next(self._samples)
+            try:
+                s = next(self._samples)
+            except TypeError:
+                s = self._samples[0]
             self._are_sequential_features = s.sequential_features
         return self._are_sequential_features
 
@@ -116,15 +122,16 @@ class DataSet:
         self.__create_X_vectorizer()
         if self.are_sequential_features():
             self._X = np.array(
-                [np.array(self._X_vectorizer.transform(s.features))
+                [self._X_vectorizer.transform(s.features).todense()
                  for s in samples]
             )
         else:
-            self._X = np.array(
-                self._X_vectorizer.transform([s.features for s in samples])
-            )
+            self._X = self._X_vectorizer.transform(
+                [s.features for s in samples]
+            ).todense()
         self._y_vectorizer = DictVectorizer()
-        self._y = self._y_vectorizer.fit_transform([s.label for s in samples])
+        self._y = self._y_vectorizer.fit_transform([{'l': s.label}
+                                                    for s in samples])
 
     @property
     def X(self):
@@ -159,10 +166,10 @@ class DataSet:
         return True
 
     def __add_sample(self, sample):
-        if self._skip_duplicates:
-            self._samples.add(sample)
-        else:
-            self._samples.append(sample)
+        if self._skip_duplicates and sample in self._unique_samples:
+            return
+        self._samples.append(sample)
+        self._unique_samples.add(sample)
         self._sample_per_class_cnt[sample.label] += 1
 
 
@@ -321,7 +328,7 @@ class NGramFeaturizer(Featurizer):
 class CharacterSequenceFeaturizer(Featurizer):
 
     hu_accents = 'áéíóöőúüű'
-    hungarian_alphabet = 'abcdefghijklmnopqrstuvwxyz' + hu_accents
+    hungarian_alphabet = ' abcdefghijklmnopqrstuvwxyz' + hu_accents
 
     def __init__(self, max_len, max_sample_per_class, tolower=True,
                  replace_rare=True,
@@ -342,15 +349,19 @@ class CharacterSequenceFeaturizer(Featurizer):
             if alphabet is None else alphabet
         self.alphabet = set(self.alphabet)
 
+    def zero_pad(self, text):
+        if len(text) < self.max_len:
+            text = ' ' * (self.max_len-len(text)) + text
+        return text
+
     def featurize_sample(self, sample):
-        text = sample.sample[-self.max_len:]
-        feats = []
-        for c in text:
-            c = self.normalize_char(c)
-            if c is None and self.replace_rare is False:
-                continue
-            feats.append({'ch': c})
-        sample.features = feats
+        text = self.normalize_text(sample.sample)[-self.max_len:]
+        text = self.zero_pad(text)
+        sample.features = [{'ch': c} for c in text]
+
+    def normalize_text(self, text):
+        return ''.join(filter(lambda x: x is not None, map(
+            self.normalize_char, text)))
 
     def normalize_char(self, c):
         c = c.lower()
