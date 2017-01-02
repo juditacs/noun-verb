@@ -25,7 +25,7 @@ class Featurizer:
         self._max_lines = max_lines
         self._line_cnt = 0
 
-    def featurize_file(self, stream):
+    def featurize_stream(self, stream):
         for line in stream:
             if self.continue_reading() is False:
                 break
@@ -60,6 +60,14 @@ class Featurizer:
 
     def get_samples(self):
         return self.dataset.samples
+
+    @property
+    def X(self):
+        return self.dataset.X
+
+    @property
+    def y(self):
+        return self.dataset.y
 
 
 class NGramFeaturizer(Featurizer):
@@ -170,7 +178,7 @@ def main():
     wc = WebCorpusExtractor(grep_filter=filt)
     f = Featurizer(max_sample_per_class=s, max_lines=20, label_extractor=wc)
     with open(args.i) as f:
-        f.featurize_file(f)
+        f.featurize_stream(f)
     for s in f.dataset._samples:
         print(s.sample, s.label)
 

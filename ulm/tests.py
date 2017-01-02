@@ -42,14 +42,14 @@ class FeaturizerTest(unittest.TestCase):
     def test_pos_extract(self):
         w = featurize.WebCorpusExtractor(grep_filter=["NOUN", "VERB"])
         f = featurize.Featurizer(2, 20, label_extractor=w)
-        f.featurize_file(io.StringIO(input_simple))
+        f.featurize_stream(io.StringIO(input_simple))
         self.assertEqual(len(f.dataset), 4)
         self.assertTrue(f.dataset.full)
 
     def test_pos_extract_not_enough_input(self):
         w = featurize.WebCorpusExtractor(grep_filter=["NOUN", "VERB"])
         f = featurize.Featurizer(200, 20, label_extractor=w)
-        f.featurize_file(io.StringIO(input_simple))
+        f.featurize_stream(io.StringIO(input_simple))
         self.assertFalse(f.dataset.full)
 
     def test_regex_extract(self):
@@ -57,7 +57,7 @@ class FeaturizerTest(unittest.TestCase):
             r'<CAS<([^<>]+)>',
         ])
         f = featurize.Featurizer(2, 20, label_extractor=w)
-        f.featurize_file(io.StringIO(input_with_cases))
+        f.featurize_stream(io.StringIO(input_with_cases))
         self.assertEqual(len(f.dataset), 4)
 
     def test_regex_extract2(self):
@@ -65,7 +65,7 @@ class FeaturizerTest(unittest.TestCase):
             r'<CAS<([^<>]+)>',
         ])
         f = featurize.Featurizer(2, 20, label_extractor=w)
-        f.featurize_file(io.StringIO(input_with_cases))
+        f.featurize_stream(io.StringIO(input_with_cases))
         self.assertTrue(f.dataset.full)
 
     def test_regex_extract_not_enough_input(self):
@@ -73,7 +73,7 @@ class FeaturizerTest(unittest.TestCase):
             r'<CAS<([^<>]+)>',
         ])
         f = featurize.Featurizer(6, 11, label_extractor=w)
-        f.featurize_file(io.StringIO(input_with_cases))
+        f.featurize_stream(io.StringIO(input_with_cases))
         self.assertEqual(len(f.dataset), 4)
 
     def test_regex_extract_not_enough_input2(self):
@@ -81,30 +81,30 @@ class FeaturizerTest(unittest.TestCase):
             r'<CAS<([^<>]+)>',
         ])
         f = featurize.Featurizer(6, 11, label_extractor=w)
-        f.featurize_file(io.StringIO(input_with_cases))
+        f.featurize_stream(io.StringIO(input_with_cases))
         self.assertFalse(f.dataset.full)
 
     def test_empty_extractor(self):
         s = len(input_with_cases.strip().split('\n'))
         f = featurize.Featurizer(3)
-        f.featurize_file(io.StringIO(input_with_cases))
+        f.featurize_stream(io.StringIO(input_with_cases))
         self.assertEqual(len(f.dataset), s)
 
     def test_empty_extractor2(self):
         f = featurize.Featurizer(3)
-        f.featurize_file(io.StringIO(input_with_cases))
+        f.featurize_stream(io.StringIO(input_with_cases))
         self.assertIn('részletez/VERB<INF>', f.dataset.labels)
 
     def test_keep_duplicates(self):
         s = len(input_with_duplicates.split('\n'))
         f = featurize.Featurizer(30, 300, skip_duplicates=False)
-        f.featurize_file(io.StringIO(input_with_duplicates))
+        f.featurize_stream(io.StringIO(input_with_duplicates))
         self.assertEqual(len(f.dataset), s)
 
     def test_skip_duplicates(self):
         s = len(set(input_with_duplicates.split('\n')))
         f = featurize.Featurizer(30, 300, skip_duplicates=True)
-        f.featurize_file(io.StringIO(input_with_duplicates))
+        f.featurize_stream(io.StringIO(input_with_duplicates))
         self.assertEqual(len(f.dataset), s)
 
 
@@ -142,21 +142,21 @@ class NGramFeaturizerTest(unittest.TestCase):
     def test_padding_positional(self):
         f = featurize.NGramFeaturizer(2, 3,
                                       max_sample_per_class=2, use_padding=True)
-        f.featurize_file(io.StringIO("abc\tdef"))
+        f.featurize_stream(io.StringIO("abc\tdef"))
         features = list(f.get_samples())[0].features
         self.assertEqual(features, {0: ' a', 1: 'ab', 2: 'bc', 3: 'c '})
 
     def test_no_padding_positional(self):
         f = featurize.NGramFeaturizer(2, 3, max_sample_per_class=2,
                                       use_padding=False)
-        f.featurize_file(io.StringIO("abc\tdef"))
+        f.featurize_stream(io.StringIO("abc\tdef"))
         features = list(f.get_samples())[0].features
         self.assertEqual(features, {0: 'ab', 1: 'bc'})
 
     def test_padding_bagof(self):
         f = featurize.NGramFeaturizer(2, 5, max_sample_per_class=2,
                                       use_padding=True, bagof=True)
-        f.featurize_file(io.StringIO("abcab\tdef"))
+        f.featurize_stream(io.StringIO("abcab\tdef"))
         features = list(f.get_samples())[0].features
         self.assertEqual(features,
                          {'ab': True, 'bc': True, 'ca': True,
@@ -165,21 +165,21 @@ class NGramFeaturizerTest(unittest.TestCase):
     def test_no_padding_bagof(self):
         f = featurize.NGramFeaturizer(2, 5, max_sample_per_class=2,
                                       use_padding=False, bagof=True)
-        f.featurize_file(io.StringIO("abcab\tdef"))
+        f.featurize_stream(io.StringIO("abcab\tdef"))
         features = list(f.get_samples())[0].features
         self.assertEqual(features, {'ab': True, 'bc': True, 'ca': True})
 
     def test_last_char(self):
         f = featurize.NGramFeaturizer(2, 3, max_sample_per_class=2,
                                       use_padding=False, bagof=False)
-        f.featurize_file(io.StringIO("abcdef\tdef"))
+        f.featurize_stream(io.StringIO("abcdef\tdef"))
         features = list(f.get_samples())[0].features
         self.assertEqual(features, {0: 'de', 1: 'ef'})
 
     def test_last_char_with_padding(self):
         f = featurize.NGramFeaturizer(2, 3, max_sample_per_class=2,
                                       use_padding=True, bagof=False)
-        f.featurize_file(io.StringIO("abcdef\tdef"))
+        f.featurize_stream(io.StringIO("abcdef\tdef"))
         features = list(f.get_samples())[0].features
         self.assertEqual(features, {0: ' d', 1: 'de', 2: 'ef', 3: 'f '})
 
@@ -193,47 +193,47 @@ class CharacterSequenceFeaturizerTester(unittest.TestCase):
 
     def test_feature_extraction(self):
         f = featurize.CharacterSequenceFeaturizer(2, 10)
-        f.featurize_file(io.StringIO("abc\tdef"))
+        f.featurize_stream(io.StringIO("abc\tdef"))
         s = f.dataset.samples.pop()
         self.assertEqual(s.features, [{'ch': 'b'}, {'ch': 'c'}])
 
     def test_feature_extraction_short_word(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10)
-        f.featurize_file(io.StringIO("ab\tdef"))
+        f.featurize_stream(io.StringIO("ab\tdef"))
         s = f.dataset.samples.pop()
         self.assertEqual(s.features,
                          [{'ch': ' '}, {'ch': 'a'}, {'ch': 'b'}])
 
     def test_feature_extraction_several_lines(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10)
-        f.featurize_file(io.StringIO(input_simple))
+        f.featurize_stream(io.StringIO(input_simple))
         l = len(input_simple.strip().split('\n'))
         self.assertEqual(len(f.dataset), l)
 
     def test_skip_rare(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10, replace_rare=False)
-        f.featurize_file(io.StringIO("aßbc\ta\nabc\ta"))
+        f.featurize_stream(io.StringIO("aßbc\ta\nabc\ta"))
         s1 = f.dataset.samples.pop()
         s2 = f.dataset.samples.pop()
         self.assertEqual(s1.features, s2.features)
 
     def test_replace_rare(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10, replace_rare=True)
-        f.featurize_file(io.StringIO("aßbc\ta\naデbc\ta"))
+        f.featurize_stream(io.StringIO("aßbc\ta\naデbc\ta"))
         s1 = f.dataset.samples[0]
         s2 = f.dataset.samples[1]
         self.assertEqual(s1.features, s2.features)
 
     def test_lower(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10)
-        f.featurize_file(io.StringIO("AbCd\ta\nabCD\ta"))
+        f.featurize_stream(io.StringIO("AbCd\ta\nabCD\ta"))
         s1 = f.dataset.samples[0]
         s2 = f.dataset.samples[1]
         self.assertEqual(s1.features, s2.features)
 
     def test_replace_punct(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10)
-        f.featurize_file(io.StringIO("a!?\ta\na#'\ta"))
+        f.featurize_stream(io.StringIO("a!?\ta\na#'\ta"))
         s1 = f.dataset.samples[0]
         s2 = f.dataset.samples[1]
         self.assertEqual(s1.features, s2.features)
@@ -241,14 +241,14 @@ class CharacterSequenceFeaturizerTester(unittest.TestCase):
     def test_different_alphabet(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10, alphabet='abcd',
                                                   replace_rare=True)
-        f.featurize_file(io.StringIO("axz\ta\nakl\ta"))
+        f.featurize_stream(io.StringIO("axz\ta\nakl\ta"))
         s1 = f.dataset.samples[0]
         s2 = f.dataset.samples[1]
         self.assertEqual(s1.features, s2.features)
 
     def test_replace_rare_char(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10, rare_char='x')
-        f.featurize_file(io.StringIO("aデ\ta\nax\ta"))
+        f.featurize_stream(io.StringIO("aデ\ta\nax\ta"))
         s1 = f.dataset.samples[0]
         s2 = f.dataset.samples[1]
         self.assertEqual(s1.features, s2.features)
@@ -258,7 +258,7 @@ class MatrixCreationTester(unittest.TestCase):
     def test_2d_unique_samples(self):
         f = featurize.NGramFeaturizer(1, 3, max_sample_per_class=2,
                                       use_padding=False)
-        f.featurize_file(io.StringIO("abc\tdef"))
+        f.featurize_stream(io.StringIO("abc\tdef"))
         X = f.dataset.X
         self.assertEqual(X.shape, (1, 3))
         y = f.dataset.y
@@ -267,7 +267,7 @@ class MatrixCreationTester(unittest.TestCase):
     def test_2d_unique_samples2(self):
         f = featurize.NGramFeaturizer(1, 3, max_sample_per_class=2,
                                       use_padding=False)
-        f.featurize_file(io.StringIO("abc\tdef\nabd\t12"))
+        f.featurize_stream(io.StringIO("abc\tdef\nabd\t12"))
         X = f.dataset.X
         self.assertEqual(X.shape, (2, 4))
         y = f.dataset.y
@@ -276,7 +276,7 @@ class MatrixCreationTester(unittest.TestCase):
     def test_2d_nonunique_samples(self):
         f = featurize.NGramFeaturizer(1, 3, max_sample_per_class=2,
                                       skip_duplicates=False, use_padding=False)
-        f.featurize_file(io.StringIO("abc\tdef\nabd\t12\nabc\tdef"))
+        f.featurize_stream(io.StringIO("abc\tdef\nabd\t12\nabc\tdef"))
         X = f.dataset.X
         self.assertEqual(X.shape, (3, 4))
         y = f.dataset.y
@@ -284,7 +284,7 @@ class MatrixCreationTester(unittest.TestCase):
 
     def test_3d_simple(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10)
-        f.featurize_file(io.StringIO("abb\ta"))
+        f.featurize_stream(io.StringIO("abb\ta"))
         X = f.dataset.X
         self.assertEqual(X.shape, (1, 3, 2))
         y = f.dataset.y
@@ -292,7 +292,7 @@ class MatrixCreationTester(unittest.TestCase):
 
     def test_3d_unique_samples(self):
         f = featurize.CharacterSequenceFeaturizer(3, 10)
-        f.featurize_file(io.StringIO("abb\ta\nabb\ta\nbcd\tb"))
+        f.featurize_stream(io.StringIO("abb\ta\nabb\ta\nbcd\tb"))
         X = f.dataset.X
         self.assertEqual(X.shape, (2, 3, 4))
         y = f.dataset.y

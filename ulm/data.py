@@ -1,7 +1,7 @@
 from collections import defaultdict
 import numpy as np
 import re
-from sklearn.feature_selection import DictVectorizer
+from sklearn.feature_extraction import DictVectorizer
 
 
 class InvalidInput(Exception):
@@ -99,15 +99,12 @@ class DataSet:
 
     def are_sequential_features(self):
         if self._are_sequential_features is None:
-            try:
-                s = next(self._samples)
-            except TypeError:
-                s = self._samples[0]
+            s = self._samples[0]
             self._are_sequential_features = s.sequential_features
         return self._are_sequential_features
 
     def __vectorize_data(self):
-        samples = list(self._samples)
+        samples = self._samples
         self.__create_X_vectorizer()
         if self.are_sequential_features():
             self._X = np.array(
