@@ -7,12 +7,71 @@ from keras.layers import Dense
 from keras.layers import LSTM, GRU
 from keras.optimizers import SGD, RMSprop
 
-from experiment import Result
+from result import Result
+from utils import create_list_if_str, densify
 
 
 class FFNN:
-    def __init__(self):
-        pass
+    def __init__(self, input_dim, output_dim, layers,
+                 activations='sigmoid', optimizer='rmsprop',
+                 optimizer_kwargs={}, loss='binary_crossentropy',
+                 metrics=['accuracy'], nb_epoch=300,
+                 batch_size=128, early_stopping=True):
+        self.layers = layers
+        self.activations = create_list_if_str(activations,
+                                              len(layers)+1)
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.early_stopping = early_stopping
+        self.model_fit_args = {
+            'nb_epoch': nb_epoch,
+            'batch_size': batch_size,
+        }
+        self.model_compile_args = {
+            'optimizer': optimizer,
+            'metrics': metrics,
+            'loss': loss,
+        }
+        self.create_network()
+        self.result = Result()
+
+    def create_network(self):
+            self.model = Sequential()
+            # input layer
+            self.model.add(Dense(self.layers[0], input_dim=self.input_dim,
+                                 activation=self.activations[0]))
+            for i in range(1, len(self.layers)):
+                self.model.add(Dense(self.layers[i],
+                                     activation=self.activations[i]))
+            # output layer
+            self.model.add(Dense(self.output_dim,
+                                 activation=self.activations[-1]))
+            self.model.compile(**self.model_compile_args)
+
+    def fit(self, X, y):
+        X = densify(X)
+        y = densify(y)
+        start = datetime.now()
+        if self.early_stopping:
+            early_stopping = EarlyStopping(monitor='val_loss', patience=2)
+            self.model.fit(X, y, verbose=0, validation_split=0.2, callbacks=[early_stopping], **self.model_fit_args)
+        else:
+            self.model.fit(X, y, verbose=0, **self.model_fit_args)
+        self.result.running_time = datetime.now() - start
+        
+    def evaluate(self, X, y, prefix, result=None):
+        if result is None:
+            result = Result()
+        r = self.model.evaluate(densify(X), densify(y), batch_size=128)
+        setattr(result, '{}.loss', r[0])
+        setattr(result, '{}.acc', r[1])
+        return result
+    
+    @staticmethod
+    def densify(mtx):
+        if issparse(mtx):
+            return mtx.todense()
+        return mtx
 
 
 class SingleLayerRNN:
