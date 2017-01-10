@@ -22,6 +22,7 @@ class Result(Logger):
         'test_acc', 'test_loss',
         'full_acc', 'full_loss',
         'history', 'running_time',
+        'success', 'exception',
     )
     log_name = 'result'
 

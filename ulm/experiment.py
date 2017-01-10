@@ -2,7 +2,7 @@ from sklearn.model_selection import train_test_split
 
 from featurize import NGramFeaturizer, CharacterSequenceFeaturizer
 from data import WebCorpusExtractor
-from nn_models import FFNN, SingleLayerRNN
+from nn_models import FFNN, SingleLayerRNN, Conv1D
 from result import DataStat
 from utils import add_row_and_save
 
@@ -54,7 +54,6 @@ class Experiment:
             self.featurizer = NGramFeaturizer(
                 label_extractor=extractor, **conf_cpy)
         elif self.featurizer_conf['type'] == 'character_sequence':
-            print(conf_cpy)
             self.featurizer = CharacterSequenceFeaturizer(
                 label_extractor=extractor, **conf_cpy)
 
@@ -83,16 +82,25 @@ class Experiment:
         elif typ == 'rnn':
             input_dim = self.featurizer.X.shape[2]
             self.model = SingleLayerRNN(input_dim, output_dim, **conf_cpy)
+        elif typ == 'cnn':
+            input_dim = self.featurizer.X.shape[2]
+            self.model = Conv1D(input_dim, output_dim, **conf_cpy)
 
     def run(self):
-        X = self.featurizer.X
-        y = self.featurizer.y
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=.2)
-        self.model.fit(X_train, y_train)
-        self.model.evaluate(X_train, y_train, prefix='train')
-        self.model.evaluate(X_test, y_test, prefix='test')
-        self.model.evaluate(X, y, prefix='full')
+        try:
+            X = self.featurizer.X
+            y = self.featurizer.y
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=.2)
+            self.model.fit(X_train, y_train)
+            self.model.evaluate(X_train, y_train, prefix='train')
+            self.model.evaluate(X_test, y_test, prefix='test')
+            self.model.evaluate(X, y, prefix='full')
+        except Exception as e:
+            self.model.result.success = False
+            self.model.result.exception = str(e)
+        else:
+            self.model.result.success = True
 
     def save(self):
         if self.global_conf['nolog'] is False:

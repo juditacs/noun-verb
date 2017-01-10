@@ -4,6 +4,7 @@ from keras.callbacks import EarlyStopping
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM, GRU
+from keras.layers import Convolution1D, GlobalMaxPooling1D
 
 from result import Result
 from utils import create_list_if_str, densify
@@ -46,13 +47,10 @@ class NN_Model:
         self.result.running_time = datetime.now() - start
         return self.result
 
-    def evaluate(self, X, y, prefix, result=None):
-        if result is None:
-            result = Result()
+    def evaluate(self, X, y, prefix):
         r = self.model.evaluate(densify(X), densify(y), batch_size=128)
-        setattr(result, '{}_loss'.format(prefix), r[0])
-        setattr(result, '{}_acc'.format(prefix), r[1])
-        return result
+        setattr(self.result, '{}_loss'.format(prefix), r[0])
+        setattr(self.result, '{}_acc'.format(prefix), r[1])
 
     def to_json(self):
         return self.model.to_json()
@@ -116,4 +114,35 @@ class SingleLayerRNN(NN_Model):
             model.add(GRU(self.cell_num,
                           input_shape=(self.max_len, self.input_dim)))
         model.add(Dense(self.output_dim, activation=self.output_activation))
+        self.model = model
+
+
+class Conv1D(NN_Model):
+    def __init__(self, input_dim, output_dim, layers, max_len,
+                 init='glorot_uniform', optimizer='rmsprop',
+                 optimizer_kwargs={}, loss='binary_crossentropy',
+                 metrics=['accuracy'], nb_epoch=300, lr=.01,
+                 batch_size=128, early_stopping=True):
+        self.layers = layers
+        self.max_len = max_len
+        super().__init__(input_dim, output_dim,
+                         optimizer=optimizer,
+                         optimizer_kwargs=optimizer_kwargs,
+                         loss=loss, metrics=metrics, lr=lr,
+                         nb_epoch=nb_epoch, batch_size=batch_size,
+                         early_stopping=early_stopping)
+
+    def create_network(self):
+        model = Sequential()
+        # input layer
+        model.add(Convolution1D(self.layers[0][0], self.layers[0][1],
+                                activation=self.layers[0][2],
+                                input_shape=(self.max_len, self.input_dim)))
+        for i in range(1, len(self.layers)-1):
+            model.add(Convolution1D(self.layers[i][0], self.layers[i][1],
+                                    activation=self.layers[i][2]))
+        model.add(GlobalMaxPooling1D())
+        # output layer
+        model.add(Dense(self.output_dim,
+                        activation=self.layers[-1][2]))
         self.model = model
