@@ -1,24 +1,27 @@
+from sklearn.model_selection import train_test_split
+
 from featurize import NGramFeaturizer, CharacterSequenceFeaturizer
 from data import WebCorpusExtractor
-from nn_models import FFNN
+from nn_models import FFNN, SingleLayerRNN
 from result import DataStat
+from utils import add_row_and_save
 
 
 class Experiment:
 
-    defaults = {
-        'global': {
-            'nolog': True,
-            'save_history': False,
-        },
-        'featurizer': {
-            'grep_filter': ("NOUN", "VERB"),
-            'regex_filter': None,
-        },
-        'model': {},
-    }
-
     def __init__(self, config):
+        self.defaults = {
+            'global': {
+                'nolog': True,
+                'save_history': False,
+                'df_path': 'results.tsv',
+            },
+            'featurizer': {
+                'grep_filter': ("NOUN", "VERB"),
+                'regex_filter': None,
+            },
+            'model': {},
+        }
         self.process_config(config)
         self.result = None
         self.model = None
@@ -33,7 +36,7 @@ class Experiment:
 
     def process_config(self, conf_d):
         # avoid modifying global defaults
-        d = Experiment.defaults.copy()
+        d = self.defaults.copy()
         self.global_conf = d['global']
         self.global_conf.update(conf_d['global'])
         self.featurizer_conf = d['featurizer']
@@ -51,6 +54,7 @@ class Experiment:
             self.featurizer = NGramFeaturizer(
                 label_extractor=extractor, **conf_cpy)
         elif self.featurizer_conf['type'] == 'character_sequence':
+            print(conf_cpy)
             self.featurizer = CharacterSequenceFeaturizer(
                 label_extractor=extractor, **conf_cpy)
 
@@ -72,23 +76,47 @@ class Experiment:
         typ = self.model_conf['type'].lower()
         conf_cpy = self.model_conf.copy()
         del conf_cpy['type']
+        output_dim = self.featurizer.y.shape[1]
         if typ == 'ffnn':
-            print("Creating FFNN")
-            self.model = FFNN(**conf_cpy)
-        # TODO
+            input_dim = self.featurizer.X.shape[1]
+            self.model = FFNN(input_dim, output_dim, **conf_cpy)
+        elif typ == 'rnn':
+            input_dim = self.featurizer.X.shape[2]
+            self.model = SingleLayerRNN(input_dim, output_dim, **conf_cpy)
 
     def run(self):
-        self.result = self.model.train_and_test(self.featurizer.X,
-                                                self.featurizer.y)
+        X = self.featurizer.X
+        y = self.featurizer.y
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=.2)
+        self.model.fit(X_train, y_train)
+        self.model.evaluate(X_train, y_train, prefix='train')
+        self.model.evaluate(X_test, y_test, prefix='test')
+        self.model.evaluate(X, y, prefix='full')
 
     def save(self):
         if self.global_conf['nolog'] is False:
             self.__save()
-        if self.global_conf['save_history'] is True:
-            self.__save_history()
 
     def __save(self):
-        print("SAVING")
+        result = self.model.result
+        d = result.to_dict(exclude=['history'])
+        if self.global_conf['save_history'] is True:
+            d['result.history_history'] = result.history.history
+            d['result.history_epoch'] = result.history.epoch
+        else:
+            d['result.history'] = None
+        d.update(self.__serialize_config())
+        d.update(self.data_stat.to_dict())
+        d['model.json'] = self.model.to_json()
+        add_row_and_save(d, self.global_conf['df_path'])
 
-    def __save_history(self):
-        print("SAVING HISTORY")
+    def __serialize_config(self):
+        d = {}
+        for k, v in self.global_conf.items():
+            d['global.{}'.format(k)] = v
+        for k, v in self.model_conf.items():
+            d['model.{}'.format(k)] = v
+        for k, v in self.featurizer_conf.items():
+            d['feat.{}'.format(k)] = v
+        return d

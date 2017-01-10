@@ -153,7 +153,7 @@ class CharacterSequenceFeaturizer(Featurizer):
         if c in self.alphabet:
             return c
         if self.replace_digit and c.isdigit():
-            return 0
+            return '0'
         if self.replace_punct and c in string.punctuation:
             return '_'
         if self.replace_rare:

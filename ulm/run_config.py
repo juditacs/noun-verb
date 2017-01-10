@@ -1,19 +1,20 @@
+from sys import argv
+
 from experiment import Experiment
 
 
 def main():
-    cfg = {
+    ffnn_cfg = {
         'global': {
-            'nolog': True,
+            'nolog': False,
             'save_history': True,
         },
         'featurizer': {
             'type': 'ngram',
-            'input_file':
-            '/tmp/webcorp_100k',
+            'input_file': argv[1],
             'N': 2,
-            'last_char': 3,
-            'max_sample_per_class': 3,
+            'last_char': 5,
+            'max_sample_per_class': 3000,
             'grep_filter': ("NOUN", "VERB"),
         },
         'model': {
@@ -28,9 +29,35 @@ def main():
             'early_stopping': True,
         },
     }
-    e = Experiment(cfg)
+    rnn_cfg = {
+        'global': {
+            'nolog': False,
+            'save_history': True,
+        },
+        'featurizer': {
+            'type': 'character_sequence',
+            'input_file': argv[1],
+            'max_len': 4,
+            'max_sample_per_class': 3456,
+            'grep_filter': ("NOUN", "VERB"),
+        },
+        'model': {
+            'type': 'rnn',
+            'cell_type': 'GRU',
+            'cell_num': 12,
+            'max_len': 4,
+            'optimizer': 'rmsprop',
+            'loss': 'binary_crossentropy',
+            'metrics': ['accuracy'],
+            'nb_epoch': 10,
+            'batch_size': 100,
+            'early_stopping': True,
+        },
+    }
+    e = Experiment(ffnn_cfg)
     e.run_and_save()
-    print(e.featurizer.X.shape)
+    e = Experiment(rnn_cfg)
+    e.run_and_save()
 
 
 if __name__ == '__main__':

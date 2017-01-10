@@ -4,9 +4,11 @@ class Logger:
     )
     log_name = 'logger'
 
-    def to_dict(self):
+    def to_dict(self, exclude=[]):
         d = {}
         for k in self.__slots__:
+            if k in exclude:
+                continue
             try:
                 d['{}.{}'.format(self.log_name, k)] = getattr(self, k)
             except AttributeError:
@@ -16,7 +18,10 @@ class Logger:
 
 class Result(Logger):
     __slots__ = (
-        'train_acc', 'test_acc',
+        'train_acc', 'train_loss',
+        'test_acc', 'test_loss',
+        'full_acc', 'full_loss',
+        'history', 'running_time',
     )
     log_name = 'result'
 
