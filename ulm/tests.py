@@ -143,45 +143,49 @@ class NGramFeaturizerTest(unittest.TestCase):
         f = featurize.NGramFeaturizer(2, 3,
                                       max_sample_per_class=2, use_padding=True)
         f.featurize_stream(io.StringIO("abc\tdef"))
-        features = list(f.get_samples())[0].features
-        self.assertEqual(features, {0: ' a', 1: 'ab', 2: 'bc', 3: 'c '})
+        features = f.dataset.samples[0].features
+        self.assertEqual(set(features.values()), {' a', 'ab', 'bc', 'c '})
+        self.assertEqual(set(features.keys()), {'2.0', '2.1', '2.2', '2.3'})
 
     def test_no_padding_positional(self):
         f = featurize.NGramFeaturizer(2, 3, max_sample_per_class=2,
                                       use_padding=False)
         f.featurize_stream(io.StringIO("abc\tdef"))
-        features = list(f.get_samples())[0].features
-        self.assertEqual(features, {0: 'ab', 1: 'bc'})
+        features = f.dataset.samples[0].features
+        self.assertEqual(set(features.values()), {'ab', 'bc'})
+        self.assertEqual(set(features.keys()), {'2.0', '2.1'})
 
     def test_padding_bagof(self):
         f = featurize.NGramFeaturizer(2, 5, max_sample_per_class=2,
                                       use_padding=True, bagof=True)
         f.featurize_stream(io.StringIO("abcab\tdef"))
-        features = list(f.get_samples())[0].features
-        self.assertEqual(features,
-                         {'ab': True, 'bc': True, 'ca': True,
-                          ' a': True, 'b ': True})
+        features = f.dataset.samples[0].features
+        self.assertEqual(set(features.keys()), {'ab', 'bc', 'ca', ' a', 'b '})
+        self.assertEqual(set(features.values()), {True})
 
     def test_no_padding_bagof(self):
         f = featurize.NGramFeaturizer(2, 5, max_sample_per_class=2,
                                       use_padding=False, bagof=True)
         f.featurize_stream(io.StringIO("abcab\tdef"))
-        features = list(f.get_samples())[0].features
-        self.assertEqual(features, {'ab': True, 'bc': True, 'ca': True})
+        features = f.dataset.samples[0].features
+        self.assertEqual(set(features.keys()), {'ab', 'bc', 'ca'})
+        self.assertEqual(set(features.values()), {True})
 
     def test_last_char(self):
         f = featurize.NGramFeaturizer(2, 3, max_sample_per_class=2,
                                       use_padding=False, bagof=False)
         f.featurize_stream(io.StringIO("abcdef\tdef"))
-        features = list(f.get_samples())[0].features
-        self.assertEqual(features, {0: 'de', 1: 'ef'})
+        features = f.dataset.samples[0].features
+        self.assertEqual(set(features.keys()), {'2.0', '2.1'})
+        self.assertEqual(set(features.values()), {'de', 'ef'})
 
     def test_last_char_with_padding(self):
         f = featurize.NGramFeaturizer(2, 3, max_sample_per_class=2,
                                       use_padding=True, bagof=False)
         f.featurize_stream(io.StringIO("abcdef\tdef"))
-        features = list(f.get_samples())[0].features
-        self.assertEqual(features, {0: ' d', 1: 'de', 2: 'ef', 3: 'f '})
+        features = f.dataset.samples[0].features
+        self.assertEqual(set(features.keys()), {'2.0', '2.1', '2.2', '2.3'})
+        self.assertEqual(set(features.values()), {'de', 'ef', ' d', 'f '})
 
 
 class CharacterSequenceFeaturizerTester(unittest.TestCase):
