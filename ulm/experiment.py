@@ -23,7 +23,6 @@ class Experiment:
             'model': {},
         }
         self.process_config(config)
-        self.result = None
         self.model = None
         self.data_stat = DataStat()
         self.create_featurizer()
@@ -65,7 +64,7 @@ class Experiment:
 
     def featurize(self):
         infile = self.featurizer_conf['input_file']
-        with open(infile) as f:
+        with open(infile, encoding='utf8') as f:
             self.featurizer.featurize_stream(f)
         self.data_stat.X_shape = self.featurizer.X.shape
         self.data_stat.y_shape = self.featurizer.y.shape
@@ -99,6 +98,7 @@ class Experiment:
         except Exception as e:
             self.model.result.success = False
             self.model.result.exception = str(e)
+            raise
         else:
             self.model.result.success = True
 
@@ -128,3 +128,7 @@ class Experiment:
         for k, v in self.featurizer_conf.items():
             d['feat.{}'.format(k)] = v
         return d
+
+    @property
+    def result(self):
+        return self.model.result
