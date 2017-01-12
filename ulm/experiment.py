@@ -90,7 +90,7 @@ class Experiment:
             X = self.featurizer.X
             y = self.featurizer.y
             X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=.2)
+                X, y, test_size=.1)
             self.model.fit(X_train, y_train)
             self.model.evaluate(X_train, y_train, prefix='train')
             self.model.evaluate(X_test, y_test, prefix='test')
