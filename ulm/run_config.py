@@ -69,8 +69,8 @@ def main():
         'model': {
             'type': 'cnn',
             'layers': (
-                (12, 2, 'linear'),
-                (None, None, 'sigmoid'),
+                (12, 2, 1, 'linear'),
+                (None, None, None, 'sigmoid'),
             ),
             'max_len': 10,
             'optimizer': 'rmsprop',
