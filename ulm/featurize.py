@@ -73,6 +73,7 @@ class Featurizer:
 class NGramFeaturizer(Featurizer):
     def __init__(self, N, last_char, max_sample_per_class,
                  max_lines=0, skip_duplicates=True,
+                 include_smaller_ngrams=False,
                  label_extractor=None, bagof=False,
                  use_padding=True):
         super().__init__(max_sample_per_class, max_lines=max_lines,
@@ -82,18 +83,24 @@ class NGramFeaturizer(Featurizer):
         self.last_char = last_char
         self.bagof = bagof
         self.use_padding = use_padding
+        self.include_smaller_ngrams = include_smaller_ngrams
 
     def featurize_sample(self, sample):
         text = sample.sample
         text = text[-self.last_char:]
-        if self.use_padding:
-            text = '{0}{1}{0}'.format(' ' * (self.N-1), text)
-        if self.bagof is True:
-            sample.features = NGramFeaturizer.extract_bagof_ngrams(
-                text, self.N)
-        else:
-            sample.features = NGramFeaturizer.extract_positional_ngrams(
-                text, self.N)
+        feats = {}
+        start = 1 if self.include_smaller_ngrams else self.N
+        for N in range(start, self.N+1):
+            if self.use_padding:
+                padded = '{0}{1}{0}'.format(' ' * (N-1), text)
+            else:
+                padded = text
+            if self.bagof is True:
+                feats.update(NGramFeaturizer.extract_bagof_ngrams(padded, N))
+            else:
+                feats.update(NGramFeaturizer.extract_positional_ngrams(
+                    padded, N))
+        sample.features = feats
 
     @staticmethod
     def extract_bagof_ngrams(text, N):
@@ -106,7 +113,7 @@ class NGramFeaturizer(Featurizer):
     def extract_positional_ngrams(text, N):
         d = {}
         for i in range(0, len(text)-N+1):
-            d[i] = text[i:i+N]
+            d['{}.{}'.format(N, i)] = text[i:i+N]
         return d
 
 
