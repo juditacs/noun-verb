@@ -136,11 +136,13 @@ class Conv1D(NN_Model):
         model = Sequential()
         # input layer
         model.add(Convolution1D(self.layers[0][0], self.layers[0][1],
-                                activation=self.layers[0][2],
+                                activation=self.layers[0][3],
+                                subsample_length=self.layers[0][2],
                                 input_shape=(self.max_len, self.input_dim)))
         for i in range(1, len(self.layers)-1):
             model.add(Convolution1D(self.layers[i][0], self.layers[i][1],
-                                    activation=self.layers[i][2]))
+                                    subsample_length=self.layers[i][2],
+                                    activation=self.layers[i][3]))
         model.add(GlobalMaxPooling1D())
         # output layer
         model.add(Dense(self.output_dim,
