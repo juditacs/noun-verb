@@ -215,6 +215,7 @@ class WebCorpusExtractor:
         return None
 
     def __apply_grep_filter(self, field):
+        field = field.split('/')[-1]
         if self.grep_filter:
             for gf in self.grep_filter:
                 if gf in field:
