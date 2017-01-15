@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sklearn.model_selection import train_test_split
 
 from featurize import NGramFeaturizer, CharacterSequenceFeaturizer
@@ -98,9 +100,10 @@ class Experiment:
         except Exception as e:
             self.model.result.success = False
             self.model.result.exception = str(e)
-            raise
         else:
             self.model.result.success = True
+        finally:
+            self.model.result.timestamp = datetime.now()
 
     def save(self):
         if self.global_conf['nolog'] is False:

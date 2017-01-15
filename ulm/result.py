@@ -21,7 +21,7 @@ class Result(Logger):
         'train_acc', 'train_loss',
         'test_acc', 'test_loss',
         'full_acc', 'full_loss',
-        'history', 'running_time',
+        'history', 'running_time', 'timestamp',
         'success', 'exception',
     )
     log_name = 'result'

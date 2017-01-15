@@ -16,14 +16,17 @@ from data import Sample, DataSet, InvalidTag, InvalidLine, \
 class Featurizer:
     def __init__(self, max_sample_per_class,
                  max_lines=0, skip_duplicates=True,
+                 tolower=False, include_none_labels=False,
                  label_extractor=None):
         self.dataset = DataSet(
             max_sample_per_class=max_sample_per_class,
             skip_duplicates=skip_duplicates,
         )
         self.label_extractor = LabelExtractor(label_extractor)
+        self._include_none_labels = include_none_labels
         self._max_lines = max_lines
         self._line_cnt = 0
+        self._tolower = tolower
 
     def featurize_stream(self, stream):
         for line in stream:
@@ -52,7 +55,12 @@ class Featurizer:
         word, tag = fd[:2]
         label = self.label_extractor(tag)
         if label is None:
-            raise InvalidTag()
+            if self._include_none_labels:
+                label = "OTHER"
+            else:
+                raise InvalidTag()
+        if self._tolower:
+            word = word.lower()
         return Sample(word, label)
 
     def featurize_sample(self, sample):
@@ -74,10 +82,12 @@ class NGramFeaturizer(Featurizer):
     def __init__(self, N, last_char, max_sample_per_class,
                  max_lines=0, skip_duplicates=True,
                  include_smaller_ngrams=False,
+                 tolower=False, include_none_labels=False,
                  label_extractor=None, bagof=False,
                  use_padding=True):
         super().__init__(max_sample_per_class, max_lines=max_lines,
                          skip_duplicates=skip_duplicates,
+                         tolower=tolower, include_none_labels=include_none_labels,
                          label_extractor=label_extractor)
         self.N = N
         self.last_char = last_char
@@ -122,17 +132,18 @@ class CharacterSequenceFeaturizer(Featurizer):
     hu_accents = 'áéíóöőúüű'
     hungarian_alphabet = ' abcdefghijklmnopqrstuvwxyz' + hu_accents
 
-    def __init__(self, max_len, max_sample_per_class, tolower=True,
+    def __init__(self, max_len, max_sample_per_class,
                  replace_rare=True,
+                 tolower=False, include_none_labels=False,
                  max_lines=0, skip_duplicates=True,
                  label_extractor=None, bagof=False,
                  replace_digit=True, replace_punct=True,
                  rare_char='*', alphabet=None, use_padding=True):
         super().__init__(max_sample_per_class, max_lines=max_lines,
+                         tolower=tolower, include_none_labels=include_none_labels,
                          skip_duplicates=skip_duplicates,
                          label_extractor=label_extractor)
         self.max_len = max_len
-        self.tolower = tolower
         self.replace_rare = replace_rare
         self.replace_digit = replace_digit
         self.replace_punct = replace_punct

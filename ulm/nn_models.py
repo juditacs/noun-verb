@@ -13,10 +13,13 @@ from utils import create_list_if_str, densify
 class NN_Model:
     def __init__(self, input_dim, output_dim,
                  optimizer, optimizer_kwargs, loss, metrics, nb_epoch,
-                 lr, batch_size, early_stopping):
+                 lr, batch_size, early_stopping,
+                 early_stopping_monitor, early_stopping_patience):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.early_stopping = early_stopping
+        self.patience = early_stopping_patience
+        self.es_monitor = early_stopping_monitor
         self.model_fit_args = {
             'nb_epoch': nb_epoch,
             'batch_size': batch_size,
@@ -35,7 +38,8 @@ class NN_Model:
         y = densify(y)
         start = datetime.now()
         if self.early_stopping:
-            early_stopping = EarlyStopping(monitor='val_loss', patience=2)
+            early_stopping = EarlyStopping(monitor=self.es_monitor,
+                                           patience=self.patience)
             self.result.history = self.model.fit(X, y, verbose=0,
                                                  validation_split=0.2,
                                                  callbacks=[early_stopping],
@@ -44,7 +48,7 @@ class NN_Model:
             self.result.history = self.model.fit(X, y, verbose=0,
                                                  validation_split=0.2,
                                                  **self.model_fit_args)
-        self.result.running_time = datetime.now() - start
+        self.result.running_time = (datetime.now() - start).total_seconds()
         return self.result
 
     def evaluate(self, X, y, prefix):
@@ -61,7 +65,9 @@ class FFNN(NN_Model):
                  activations='sigmoid', optimizer='rmsprop',
                  optimizer_kwargs={}, loss='binary_crossentropy',
                  metrics=['accuracy'], nb_epoch=300, lr=.01,
-                 batch_size=128, early_stopping=True):
+                 batch_size=128, early_stopping=True,
+                 early_stopping_monitor='val_loss',
+                 early_stopping_patience=2):
         self.layers = layers
         self.activations = create_list_if_str(activations,
                                               len(layers)+1)
@@ -70,7 +76,9 @@ class FFNN(NN_Model):
                          optimizer_kwargs=optimizer_kwargs,
                          loss=loss, metrics=metrics, lr=lr,
                          nb_epoch=nb_epoch, batch_size=batch_size,
-                         early_stopping=early_stopping)
+                         early_stopping=early_stopping,
+                         early_stopping_monitor=early_stopping_monitor,
+                         early_stopping_patience=early_stopping_patience)
 
     def create_network(self):
             self.model = Sequential()
@@ -93,7 +101,9 @@ class SingleLayerRNN(NN_Model):
                  optimizer='rmsprop',
                  optimizer_kwargs={}, loss='binary_crossentropy',
                  metrics=['accuracy'], nb_epoch=300, lr=.01,
-                 batch_size=128, early_stopping=True):
+                 batch_size=128, early_stopping=True,
+                 early_stopping_monitor='val_loss',
+                 early_stopping_patience=2):
         self.cell_type = cell_type
         self.max_len = max_len
         self.cell_num = cell_num
@@ -103,7 +113,9 @@ class SingleLayerRNN(NN_Model):
                          optimizer_kwargs=optimizer_kwargs,
                          loss=loss, metrics=metrics, lr=lr,
                          nb_epoch=nb_epoch, batch_size=batch_size,
-                         early_stopping=early_stopping)
+                         early_stopping=early_stopping,
+                         early_stopping_monitor=early_stopping_monitor,
+                         early_stopping_patience=early_stopping_patience)
 
     def create_network(self):
         model = Sequential()
@@ -122,7 +134,9 @@ class Conv1D(NN_Model):
                  init='glorot_uniform', optimizer='rmsprop',
                  optimizer_kwargs={}, loss='binary_crossentropy',
                  metrics=['accuracy'], nb_epoch=300, lr=.01,
-                 batch_size=128, early_stopping=True):
+                 batch_size=128, early_stopping=True,
+                 early_stopping_monitor='val_loss',
+                 early_stopping_patience=2):
         self.layers = layers
         self.max_len = max_len
         super().__init__(input_dim, output_dim,
@@ -130,7 +144,9 @@ class Conv1D(NN_Model):
                          optimizer_kwargs=optimizer_kwargs,
                          loss=loss, metrics=metrics, lr=lr,
                          nb_epoch=nb_epoch, batch_size=batch_size,
-                         early_stopping=early_stopping)
+                         early_stopping=early_stopping,
+                         early_stopping_monitor=early_stopping_monitor,
+                         early_stopping_patience=early_stopping_patience)
 
     def create_network(self):
         model = Sequential()

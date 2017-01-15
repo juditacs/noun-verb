@@ -114,8 +114,8 @@ class DataSet:
         else:
             self._X = self._X_vectorizer.transform(
                 [s.features for s in samples]
-            ).todense()
-        self._y_vectorizer = DictVectorizer()
+            )
+        self._y_vectorizer = DictVectorizer(dtype=np.int8)
         self._y = self._y_vectorizer.fit_transform([{'l': s.label}
                                                     for s in samples])
 
@@ -138,7 +138,7 @@ class DataSet:
                 feats_2d.extend(s.features)
             else:
                 feats_2d.append(s.features)
-        self._X_vectorizer = DictVectorizer()
+        self._X_vectorizer = DictVectorizer(dtype=np.int8)
         self._X_vectorizer.fit(feats_2d)
 
     def add_sample(self, sample):
@@ -157,6 +157,11 @@ class DataSet:
         self._samples.append(sample)
         self._unique_samples.add(sample)
         self._sample_per_class_cnt[sample.label] += 1
+
+    def write_to_file(self, fn):
+        with open(fn, 'w') as f:
+            for s in self._samples:
+                f.write('{0}\t{1}\n'.format(s.sample, s.label))
 
 
 class LabelExtractor:
